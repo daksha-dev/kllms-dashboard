@@ -38,9 +38,19 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("grounding failed, falling back to web search + synthesis", err);
+    const groundingErrMsg = err instanceof Error ? err.message : String(err);
     try {
       // Fallback: explicit web search then synthesis
       const hits = await webSearch(`${name} LinkedIn achievements background`, 8);
+      if (hits.length === 0) {
+        return NextResponse.json(
+          {
+            error: "Web search returned no results and Gemini grounding failed. Check TAVILY_API_KEY / SERPAPI_API_KEY and Gemini quota.",
+            groundingError: groundingErrMsg,
+          },
+          { status: 500 }
+        );
+      }
       const searchBlock = hits
         .map((h, i) => `[${i + 1}] ${h.title}\n${h.url}\n${h.snippet}`)
         .join("\n\n");
@@ -56,9 +66,12 @@ export async function POST(req: NextRequest) {
       });
     } catch (err2) {
       console.error("fallback also failed", err2);
+      const synthErrMsg = err2 instanceof Error ? err2.message : String(err2);
       return NextResponse.json(
         {
-          error: "Research failed in both paths. Try a different model or paste more profile text.",
+          error: "Research failed in both paths. Gemini is the bottleneck — likely a quota/billing issue. Try a different model or check your Gemini API key's billing status.",
+          groundingError: groundingErrMsg,
+          synthesisError: synthErrMsg,
         },
         { status: 500 }
       );
