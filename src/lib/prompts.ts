@@ -49,12 +49,9 @@ Use the research below to make questions specific, not generic.
 ${opts.research}
 ---
 
-Return a numbered list. For each question include:
-- The question itself
-- 1-line "intent" (what the question is trying to surface — helps the host steer)
-- Optional 1-line "follow-up" if the guest gives a short answer
-
-Mix opener, deep, vulnerable, fun, and closing questions.
+Return a plain numbered list of questions. No headings, no metadata, no
+intent, no follow-ups. Just the questions — simple, clear, easy to read
+aloud on a podcast. Mix opener, deep, vulnerable, fun, and closing.
 `.trim();
 }
 

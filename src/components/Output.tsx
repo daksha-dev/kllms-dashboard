@@ -1,15 +1,18 @@
 "use client";
 
 import CopyButton from "./CopyButton";
+import DownloadPdfButton from "./DownloadPdfButton";
 
 export default function Output({
-  text, sources, loading, error, emptyHint,
+  text, sources, loading, error, emptyHint, pdfTitle, pdfFilename,
 }: {
   text: string;
   sources?: { title: string; url: string }[];
   loading: boolean;
   error?: string | null;
   emptyHint?: string;
+  pdfTitle?: string;
+  pdfFilename?: string;
 }) {
   if (loading) {
     return (
@@ -34,7 +37,10 @@ export default function Output({
     <div className="card p-5 space-y-4">
       <div className="flex justify-between items-start gap-2">
         <h3 className="font-display text-lg text-ink-900">Result</h3>
-        <CopyButton text={text} />
+        <div className="flex gap-2">
+          {pdfTitle && <DownloadPdfButton text={text} title={pdfTitle} filename={pdfFilename ?? "questions.pdf"} />}
+          <CopyButton text={text} />
+        </div>
       </div>
       <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-ink-800">{text}</pre>
       {sources && sources.length > 0 && (

@@ -93,6 +93,8 @@ export default function QuestionsPanel({ model, onModelChange, initialResearch =
       <Output
         text={text} loading={loading} error={error}
         emptyHint="Your questions will appear here."
+        pdfTitle={guest ? `Questions for ${guest}` : "Podcast questions"}
+        pdfFilename={guest ? `questions-${guest.toLowerCase().replace(/\s+/g, "-")}.pdf` : "questions.pdf"}
       />
     </div>
   );
