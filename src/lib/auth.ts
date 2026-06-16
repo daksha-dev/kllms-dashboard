@@ -56,11 +56,18 @@ export async function loginWithPassword(
   password: string
 ): Promise<{ ok: true; user: User; token: string } | { ok: false; error: string }> {
   const e = env();
+  const normalizedEmail = email.trim().toLowerCase();
+  const seedEmail = e.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  const seedPass = e.SEED_ADMIN_PASSWORD;
+  const isSeedAttempt = !!(seedEmail && seedPass) &&
+    normalizedEmail === seedEmail && password === seedPass;
 
-  // Seed-on-first-login: if this matches SEED_ADMIN env and no user exists, create it.
+  // Seed-on-first-login: create user if it doesn't exist, OR self-heal an
+  // existing row that's missing email/password (so we never get stuck on
+  // an empty record).
   let user = await findUserByEmail(email);
-  if (!user && e.SEED_ADMIN_EMAIL && e.SEED_ADMIN_PASSWORD) {
-    if (email.toLowerCase() === e.SEED_ADMIN_EMAIL.toLowerCase() && password === e.SEED_ADMIN_PASSWORD) {
+  if (isSeedAttempt) {
+    if (!user) {
       const hash = await bcrypt.hash(password, 10);
       user = await createUser({
         email: e.SEED_ADMIN_EMAIL,
@@ -68,9 +75,17 @@ export async function loginWithPassword(
         passwordHash: hash,
         role: "admin",
       });
+    } else if (!user.passwordHash || !user.email) {
+      // Existing row but missing email/hash — repair it.
+      const { updateUserPassword } = await import("./notion");
+      const hash = await bcrypt.hash(password, 10);
+      await updateUserPassword(user.id, hash);
+      user = (await findUserById(user.id))!;
     }
   }
+
   if (!user) return { ok: false, error: "No account with that email." };
+  if (!user.passwordHash) return { ok: false, error: "Account is missing a password. Contact admin." };
 
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) return { ok: false, error: "Wrong password." };

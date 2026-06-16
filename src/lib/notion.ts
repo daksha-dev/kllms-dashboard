@@ -35,12 +35,26 @@ function readText(prop: PropValue | undefined): string {
       return plain(prop.title as { plain_text: string }[] | undefined);
     case "rich_text":
       return plain(prop.rich_text as { plain_text: string }[] | undefined);
-    case "email":
-      return ((prop.email as { email?: string } | undefined)?.email ?? "").trim();
-    case "url":
-      return ((prop.url as { url?: string } | undefined)?.url ?? "").trim();
-    case "phone_number":
-      return ((prop.phone_number as { phone_number?: string } | undefined)?.phone_number ?? "").trim();
+    case "email": {
+      // The shape varies: when reading from a page, prop.email is the string
+      // itself; when reading from a database prop config, it's { email: "..." }.
+      const v = prop.email;
+      if (typeof v === "string") return v.trim();
+      if (v && typeof v === "object") return ((v as { email?: string }).email ?? "").trim();
+      return "";
+    }
+    case "url": {
+      const v = prop.url;
+      if (typeof v === "string") return v.trim();
+      if (v && typeof v === "object") return ((v as { url?: string }).url ?? "").trim();
+      return "";
+    }
+    case "phone_number": {
+      const v = prop.phone_number;
+      if (typeof v === "string") return v.trim();
+      if (v && typeof v === "object") return ((v as { phone_number?: string }).phone_number ?? "").trim();
+      return "";
+    }
     default:
       return "";
   }
@@ -49,6 +63,40 @@ function readText(prop: PropValue | undefined): string {
 function readSelectName(prop: PropValue | undefined): string | undefined {
   const sel = prop?.select as { name?: string } | undefined;
   return sel?.name;
+}
+
+/**
+ * Build a property value matching the column's actual Notion type.
+ * Notion's API requires email/url/phone_number/number/select to use a
+ * different shape than rich_text/title, and rejects the request if you
+ * guess wrong.
+ */
+export function buildPropValue(propName: string, value: string, propType: string): Record<string, unknown> {
+  switch (propType) {
+    case "title":
+      return { title: [{ text: { content: value } }] };
+    case "rich_text":
+      return { rich_text: [{ text: { content: value } }] };
+    case "email":
+      return { email: value };
+    case "url":
+      return { url: value };
+    case "phone_number":
+      return { phone_number: value };
+    case "number":
+      return { number: Number(value) };
+    case "select":
+      return { select: { name: value } };
+    default:
+      return { rich_text: [{ text: { content: value } }] };
+  }
+}
+
+async function getPropType(propName: string): Promise<string> {
+  const db = (await notionClient().databases.retrieve({
+    database_id: env().NOTION_USERS_DB_ID,
+  })) as { properties: Record<string, { type: string }> };
+  return db.properties[propName]?.type ?? "rich_text";
 }
 
 /** Discover the actual property names + types in the users DB. */
@@ -68,8 +116,9 @@ export async function getUsersDbSchema(): Promise<DbSchema> {
   const props = (db as { properties: Record<string, { type: string }> }).properties;
 
   const findByName = (...names: string[]): string | undefined => {
-    for (const n of names) {
-      if (props[n]) return n;
+    const lower = names.map((n) => n.toLowerCase());
+    for (const [propName, def] of Object.entries(props)) {
+      if (lower.includes(propName.toLowerCase())) return propName;
     }
     return undefined;
   };
@@ -83,27 +132,28 @@ export async function getUsersDbSchema(): Promise<DbSchema> {
   // Email: prefer Email-type, fall back to a property named "Email"
   const emailProp =
     findByType("email") ??
-    findByName("Email", "email", "User email") ??
+    findByName("Email", "User email") ??
     // if not found, fall back to the title prop (common in Notion user tables)
     findByType("title") ??
     "Email";
 
-  // Password: any property whose name matches
+  // Password: any property whose name matches (case-insensitive)
   const passwordProp =
-    findByName("PasswordHash", "Password Hash", "Password", "Hash") ??
-    findByType("rich_text") ??
+    findByName("PasswordHash", "Password Hash", "Password", "Hash", "Passwordhash") ??
     // last resort: any text-like prop that isn't email/name/role/model
     Object.keys(props).find(
       (k) =>
         k !== emailProp &&
+        k !== "Name" &&
+        k !== "Role" &&
+        k !== "PreferredModel" &&
         (props[k].type === "rich_text" || props[k].type === "title")
     ) ?? "PasswordHash";
 
   // Name: prefer a name-like prop; fall back to email
   const nameProp =
     findByName("Name", "Full name", "Display name", "Username") ??
-    findByType("rich_text") ??
-    emailProp;
+    "Name";
 
   const roleProp = findByName("Role", "Type", "Access");
   const preferredModelProp = findByName("PreferredModel", "Preferred Model", "Model");
@@ -168,29 +218,24 @@ export async function createUser(input: {
 }): Promise<User> {
   const schema = await getUsersDbSchema();
   const notion = notionClient();
-  const emailType = (await notion.databases.retrieve({
+  const dbInfo = (await notion.databases.retrieve({
     database_id: env().NOTION_USERS_DB_ID,
   })) as { properties: Record<string, { type: string }> };
-  const t = emailType.properties[schema.emailProp]?.type ?? "rich_text";
 
-  const emailValue: Record<string, unknown> =
-    t === "title"
-      ? { title: [{ text: { content: input.email } }] }
-      : t === "email"
-        ? { email: { email: input.email } }
-        : { rich_text: [{ text: { content: input.email } }] };
+  const buildValue = (propName: string, value: string): Record<string, unknown> =>
+    buildPropValue(propName, value, dbInfo.properties[propName]?.type ?? "rich_text");
 
   const props: Record<string, unknown> = {
-    [schema.emailProp]: emailValue,
+    [schema.emailProp]: buildValue(schema.emailProp, input.email),
   };
   if (schema.nameProp !== schema.emailProp) {
-    props[schema.nameProp] = { rich_text: [{ text: { content: input.name } }] };
+    props[schema.nameProp] = buildValue(schema.nameProp, input.name);
   }
   if (schema.passwordProp && schema.passwordProp !== schema.emailProp) {
-    props[schema.passwordProp] = { rich_text: [{ text: { content: input.passwordHash } }] };
+    props[schema.passwordProp] = buildValue(schema.passwordProp, input.passwordHash);
   } else {
-    // password is the same column as email? extremely unlikely, but encode into name as fallback
-    props[schema.nameProp] = { rich_text: [{ text: { content: `${input.name}::${input.passwordHash}` } }] };
+    // Password col == email col: extremely unlikely, encode into name as fallback.
+    props[schema.nameProp] = buildValue(schema.nameProp, `${input.name}::${input.passwordHash}`);
   }
   if (schema.roleProp) {
     props[schema.roleProp] = { select: { name: input.role ?? "user" } };
@@ -206,20 +251,22 @@ export async function createUser(input: {
 export async function updateUserPreferredModel(userId: string, model: string): Promise<void> {
   const schema = await getUsersDbSchema();
   if (!schema.preferredModelProp) return;
+  const propType = await getPropType(schema.preferredModelProp);
   await notionClient().pages.update({
     page_id: userId,
     properties: {
-      [schema.preferredModelProp]: { rich_text: [{ text: { content: model } }] },
+      [schema.preferredModelProp]: buildPropValue(schema.preferredModelProp, model, propType),
     } as never,
   });
 }
 
 export async function updateUserPassword(userId: string, passwordHash: string): Promise<void> {
   const schema = await getUsersDbSchema();
+  const propType = await getPropType(schema.passwordProp);
   await notionClient().pages.update({
     page_id: userId,
     properties: {
-      [schema.passwordProp]: { rich_text: [{ text: { content: passwordHash } }] },
+      [schema.passwordProp]: buildPropValue(schema.passwordProp, passwordHash, propType),
     } as never,
   });
 }

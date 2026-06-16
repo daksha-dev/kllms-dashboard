@@ -7,5 +7,6 @@ out
 *.log
 .vercel
 cookies.txt
+cookies-test.txt
 login-response.txt
 tsconfig.tsbuildinfo
