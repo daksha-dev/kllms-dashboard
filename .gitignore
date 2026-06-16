@@ -6,3 +6,6 @@ out
 .DS_Store
 *.log
 .vercel
+cookies.txt
+login-response.txt
+tsconfig.tsbuildinfo
