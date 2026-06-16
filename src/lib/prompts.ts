@@ -49,9 +49,21 @@ Use the research below to make questions specific, not generic.
 ${opts.research}
 ---
 
-Return a plain numbered list of questions. No headings, no metadata, no
-intent, no follow-ups. Just the questions — simple, clear, easy to read
-aloud on a podcast. Mix opener, deep, vulnerable, fun, and closing.
+Organize the questions into clear sections. Use these section headings
+in this order. Skip any section that does not fit the guest.
+
+- Background
+- Education
+- Online presence
+- Friends & people
+- IITM BS Degree experience (only if the guest is an IITM BS student/alumnus)
+- Personal / vulnerable
+- Fun / closing
+
+Under each heading, give 2-4 simple, clear questions that are easy to
+read aloud on a podcast. No metadata, no intent, no follow-ups, no
+bullets under the questions — just the questions, one per line, numbered
+within each section.
 `.trim();
 }
 
