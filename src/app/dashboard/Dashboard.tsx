@@ -6,15 +6,17 @@ import ResearchPanel from "@/components/ResearchPanel";
 import QuestionsPanel from "@/components/QuestionsPanel";
 import EmailPanel from "@/components/EmailPanel";
 import IITMPanel from "@/components/IITMPanel";
+import SettingsPanel from "@/components/SettingsPanel";
 import { DEFAULT_MODEL, type ModelId } from "@/lib/models";
 
-type Tab = "research" | "questions" | "email" | "iitm";
+type Tab = "research" | "questions" | "email" | "iitm" | "settings";
 
 const TABS: { id: Tab; label: string; icon: string; sub: string }[] = [
   { id: "research", label: "Research", icon: "🔍", sub: "Deep-dive on a guest" },
   { id: "questions", label: "Questions", icon: "🎙️", sub: "Episode prep" },
   { id: "email", label: "Emails", icon: "✉️", sub: "Outreach & follow-ups" },
   { id: "iitm", label: "IITM BS", icon: "🏆", sub: "Find achievers" },
+  { id: "settings", label: "Settings", icon: "⚙️", sub: "Account" },
 ];
 
 export default function Dashboard({ user }: { user: { id: string; name: string; email: string; preferredModel: string | null } }) {
@@ -72,7 +74,7 @@ export default function Dashboard({ user }: { user: { id: string; name: string; 
         <div className="hidden md:block md:mt-auto pt-4 border-t border-beige-200">
           <p className="text-sm font-medium text-ink-900 truncate">{user.name}</p>
           <p className="text-xs text-ink-700/60 truncate">{user.email}</p>
-          <button onClick={logout} className="btn-ghost mt-2 w-full text-sm">Sign out</button>
+          <button onClick={() => setTab("settings")} className="btn-ghost mt-2 w-full text-sm">Settings</button>
         </div>
       </aside>
 
@@ -90,6 +92,7 @@ export default function Dashboard({ user }: { user: { id: string; name: string; 
         {tab === "questions" && <QuestionsPanel model={model} onModelChange={changeModel} />}
         {tab === "email" && <EmailPanel model={model} onModelChange={changeModel} />}
         {tab === "iitm" && <IITMPanel model={model} onModelChange={changeModel} />}
+        {tab === "settings" && <SettingsPanel name={user.name} email={user.email} />}
 
         <footer className="mt-10 text-center text-xs text-ink-700/50">
           Built with ♡ · KLLM&apos;s dashboard
