@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function SettingsPanel({ name, email }: { name: string; email: string }) {
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
-  const router = useRouter();
 
   async function changePassword() {
     setMsg(null);
@@ -31,7 +29,7 @@ export default function SettingsPanel({ name, email }: { name: string; email: st
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/"); router.refresh();
+    window.location.assign("/");
   }
 
   return (

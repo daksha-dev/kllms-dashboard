@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function Login() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +23,9 @@ export default function Login() {
         setError(data.error ?? "Login failed.");
         return;
       }
-      router.push("/dashboard");
-      router.refresh();
+      // Hard navigation so the freshly-set session cookie is sent with the GET
+      // (soft router.push can race with the RSC render and miss the cookie).
+      window.location.assign("/dashboard");
     } finally {
       setLoading(false);
     }
