@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { generate } from "@/lib/gemini";
+import { generate } from "@/lib/llm";
 import { outreachEmailPrompt, followupEmailPrompt } from "@/lib/prompts";
-import { DEFAULT_MODEL, type ModelId } from "@/lib/models";
+import { defaultModel, findModel, type ModelId } from "@/lib/models";
 
 type Body =
   | { kind: "outreach"; guest: string; research: string; podcastName: string; reason: string; tone?: string; model?: ModelId }
@@ -12,7 +12,10 @@ export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = (await req.json().catch(() => ({}))) as Body;
-  const model = body.model ?? (user.preferredModel as ModelId) ?? DEFAULT_MODEL;
+  const model = (body.model ?? user.preferredModel ?? defaultModel()) as ModelId;
+  if (!findModel(model)) {
+    return NextResponse.json({ error: `Unknown model: ${model}` }, { status: 400 });
+  }
   try {
     if (body.kind === "outreach") {
       if (!body.guest || !body.research || !body.podcastName || !body.reason) {

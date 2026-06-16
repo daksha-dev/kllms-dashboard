@@ -7,7 +7,7 @@ import QuestionsPanel from "@/components/QuestionsPanel";
 import EmailPanel from "@/components/EmailPanel";
 import IITMPanel from "@/components/IITMPanel";
 import SettingsPanel from "@/components/SettingsPanel";
-import { DEFAULT_MODEL, type ModelId } from "@/lib/models";
+import { defaultModel, type ModelId } from "@/lib/models";
 
 type Tab = "research" | "questions" | "email" | "iitm" | "settings";
 
@@ -21,7 +21,7 @@ const TABS: { id: Tab; label: string; icon: string; sub: string }[] = [
 
 export default function Dashboard({ user }: { user: { id: string; name: string; email: string; preferredModel: string | null } }) {
   const [tab, setTab] = useState<Tab>("research");
-  const [model, setModel] = useState<ModelId>((user.preferredModel as ModelId) ?? DEFAULT_MODEL);
+  const [model, setModel] = useState<ModelId>((user.preferredModel as ModelId) ?? defaultModel());
   const [savedFlash, setSavedFlash] = useState(false);
   const router = useRouter();
 

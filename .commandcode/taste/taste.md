@@ -9,7 +9,8 @@
 # Tech Stack
 - Use Next.js 14 (App Router) with TypeScript and Tailwind CSS. Confidence: 0.95
 - Use Notion as backend for user store and data persistence. Confidence: 0.90
-- Use Gemini AI for generation tasks. Confidence: 0.90
+- Use NVIDIA NIM (via OpenAI SDK, integrate.api.nvidia.com/v1) as the primary AI provider for generation tasks. Gemini is kept as a fallback when NIM is not configured. Confidence: 0.85
+- Use Tavily (api.tavily.com) as the primary web search backend for research; SerpAPI is the fallback. Confidence: 0.80
 - Target Vercel for deployment. Confidence: 0.90
 
 # Design

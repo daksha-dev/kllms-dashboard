@@ -117,6 +117,7 @@ Under 120 words.
 export function iitmOutreachPrompt(opts: {
   achievementArea: string;
   angle: string;
+  searchBlock?: string;
 }) {
   return `
 ${PODCAST_HOST_CONTEXT}
@@ -132,6 +133,12 @@ For each person return:
 
 ${opts.angle ? `Episode angle: ${opts.angle}` : ""}
 
-Use fresh web results. Prefer students with verifiable public achievements (GATE, hackathons, research papers, founder news, awards).
+Prefer students with verifiable public achievements (GATE, hackathons, research papers, founder news, awards).
+
+${
+  opts.searchBlock
+    ? `Use the following fresh web results to find candidates. Cite source URLs inline:\n\n${opts.searchBlock}`
+    : "If no candidates can be found, say so honestly rather than inventing names."
+}
 `.trim();
 }

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { generate } from "@/lib/gemini";
+import { generate } from "@/lib/llm";
 import { questionPrompt } from "@/lib/prompts";
-import { DEFAULT_MODEL, type ModelId } from "@/lib/models";
+import { defaultModel, findModel, type ModelId } from "@/lib/models";
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
@@ -19,7 +19,10 @@ export async function POST(req: NextRequest) {
   if (!body.guest || !body.research) {
     return NextResponse.json({ error: "Guest name and research text are required." }, { status: 400 });
   }
-  const model = body.model ?? (user.preferredModel as ModelId) ?? DEFAULT_MODEL;
+  const model = (body.model ?? user.preferredModel ?? defaultModel()) as ModelId;
+  if (!findModel(model)) {
+    return NextResponse.json({ error: `Unknown model: ${model}` }, { status: 400 });
+  }
   const count = Math.min(30, Math.max(3, body.count ?? 10));
   const durationMin = Math.min(180, Math.max(10, body.durationMin ?? 30));
 
