@@ -2,7 +2,6 @@ import { z } from "zod";
 
 const schema = z
   .object({
-    GEMINI_API_KEY: z.string().optional().default(""),
     NVIDIA_API_KEY: z.string().optional().default(""),
     OPENAI_API_KEY: z.string().optional().default(""),
     OPENAI_BASE_URL: z.string().optional().default("https://integrate.api.nvidia.com/v1"),
@@ -15,14 +14,10 @@ const schema = z
     SEED_ADMIN_PASSWORD: z.string().optional().default(""),
     SEED_ADMIN_NAME: z.string().optional().default("Admin"),
   })
-  .refine(
-    (e) => !!(e.NVIDIA_API_KEY || e.GEMINI_API_KEY || e.OPENAI_API_KEY),
-    {
-      message:
-        "Set one of NVIDIA_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY to enable generation.",
-      path: ["NVIDIA_API_KEY"],
-    }
-  );
+  .refine((e) => !!(e.NVIDIA_API_KEY || e.OPENAI_API_KEY), {
+    message: "Set NVIDIA_API_KEY (or OPENAI_API_KEY) to enable generation.",
+    path: ["NVIDIA_API_KEY"],
+  });
 
 export type Env = z.infer<typeof schema>;
 

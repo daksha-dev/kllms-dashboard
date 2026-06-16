@@ -10,7 +10,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.0",
     "@notionhq/client": "^4.0.1",
     "bcryptjs": "^2.4.3",
     "jose": "^5.9.6",
